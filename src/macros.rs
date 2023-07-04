@@ -139,6 +139,23 @@ macro_rules! impl_op {
                     ).0.rdiv(r, mode)
                 }, $res)
             }
+
+            #[inline]
+            fn lossless_div(
+                self,
+                rhs: $rhs,
+            ) -> Result<Option<$res>, $crate::ArithmeticError> {
+                use core::convert::TryInto;
+                use $crate::_priv::*;
+                fn up<I, O: Operand<I>>(operand: O, _: impl FnOnce(I) -> $res) -> O::Promotion {
+                    operand.promote()
+                }
+                let l = up(self.0, $res);
+                let r = up(rhs.0, $res);
+                $res(
+                    l.try_into().map_err(|_| $crate::ArithmeticError::Overflow)?
+                ).0.lossless_div(r).map(|p| p.map($res))
+            }
         }
     };
     (@method ($l:ident = $lhs:expr, $r:ident = $rhs:expr) => $op:expr, $res:tt) => {{

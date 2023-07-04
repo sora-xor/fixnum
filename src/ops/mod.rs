@@ -293,8 +293,8 @@ pub trait RoundingMul<Rhs = Self> {
         })
     }
 
-    /// Rounding-free multiplication. Returns `Ok(None)` instead of rounding the result.
-    /// `Err` on overflow
+    /// Rounding-free multiplication. Returns `Err` on overflow and `Ok(None)`
+    /// instead of rounding the result.
     ///
     /// ```
     /// use fixnum::{FixedPoint, typenum::U9, ops::RoundingMul};
@@ -322,8 +322,8 @@ pub trait RoundingDiv<Rhs = Self> {
     type Error;
 
     /// Checked rounded division. Returns `Err` on overflow or attempt to divide by zero.
-    /// Because of provided [`RoundMode`][RoundMode] it's possible to perform across the [`FixedPoint`][FixedPoint]
-    /// values.
+    /// Because of provided [`RoundMode`][RoundMode] it's possible to perform across
+    /// the [`FixedPoint`][FixedPoint] values.
     ///
     /// ```ignore
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, RoundingDiv, RoundMode::*}};
@@ -343,6 +343,27 @@ pub trait RoundingDiv<Rhs = Self> {
     /// [FixedPoint]: ../struct.FixedPoint.html
     /// [RoundMode]: ./enum.RoundMode.html
     fn rdiv(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Self::Error>;
+
+    /// Rounding-free division. Returns `Err` on overflow or attempt to divide by zero
+    /// and `Ok(None)` instead of rounding the result.
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::RoundingDiv};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let a: Amount = "0.000000002".parse()?;
+    /// let b: Amount = "2".parse()?;
+    /// let b_1: Amount = "10".parse()?;
+    /// let c: Amount = "0.000000001".parse()?;
+    /// // 2e-9 / 2 = 1e-9
+    /// assert_eq!(a.lossless_div(b)?, Some(c));
+    /// // 2e-9 / 10 = 2e-10 (needs to be rounded, so `None`)
+    /// assert_eq!(a.lossless_div(b_1)?, None);
+    /// # Ok(()) }
+    /// ```
+    fn lossless_div(self, rhs: Rhs) -> Result<Option<Self::Output>, Self::Error>;
 }
 
 pub trait RoundingSqrt: Sized {
@@ -459,6 +480,22 @@ macro_rules! impl_for_ints {
                 }
 
                 Ok(result)
+            }
+
+            #[inline]
+            fn lossless_div(self, rhs: Self) -> Result<Option<Self::Output>, Self::Error> {
+                if rhs == 0 {
+                    return Err(ArithmeticError::DivisionByZero);
+                }
+
+                let mut result = self / rhs;
+                let loss = self - result * rhs;
+
+                if loss != 0 {
+                    return Ok(None)
+                }
+
+                Ok(Some(result))
             }
         }
 

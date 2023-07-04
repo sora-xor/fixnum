@@ -326,6 +326,30 @@ macro_rules! impl_fixed_point {
 
                 Ok(Self::from_bits(result))
             }
+
+            #[inline]
+            fn lossless_div(self, rhs: Self) -> Result<Option<Self>> {
+                // TODO(loyd): avoid 128bit arithmetic when possible,
+                //      because LLVM doesn't replace 128bit division by const with multiplication.
+
+                if rhs.inner == 0 {
+                    return Err(ArithmeticError::DivisionByZero);
+                }
+
+                let numerator = $promotion::from(self.inner) * Self::COEF_PROMOTED;
+                let denominator = $promotion::from(rhs.inner);
+                let result = numerator / denominator;
+                let loss = numerator - result * denominator;
+
+                let result =
+                    $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
+
+                if loss != $convert(0) {
+                    return Ok(None);
+                }
+
+                Ok(Some(Self::from_bits(result)))
+            }
         }
 
         $(#[$attr])?
@@ -354,6 +378,24 @@ macro_rules! impl_fixed_point {
 
                 Ok(Self::from_bits(result))
             }
+
+            #[inline]
+            fn lossless_div(self, rhs: $layout) -> Result<Option<FixedPoint<$layout, P>>> {
+                if rhs == 0 {
+                    return Err(ArithmeticError::DivisionByZero);
+                }
+
+                let numerator = self.inner;
+                let denominator = rhs;
+                let result = numerator / denominator;
+                let loss = numerator - result * denominator;
+
+                if loss != 0 {
+                    return Ok(None);
+                }
+
+                Ok(Some(Self::from_bits(result)))
+            }
         }
 
         $(#[$attr])?
@@ -365,6 +407,12 @@ macro_rules! impl_fixed_point {
             fn rdiv(self, rhs: FixedPoint<$layout, P>, mode: RoundMode) -> Result<FixedPoint<$layout, P>> {
                 let lhs = FixedPoint::<$layout, P>::try_from(self).map_err(|_| ArithmeticError::Overflow)?;
                 lhs.rdiv(rhs, mode)
+            }
+
+            #[inline]
+            fn lossless_div(self, rhs: FixedPoint<$layout, P>) -> Result<Option<FixedPoint<$layout, P>>> {
+                let lhs = FixedPoint::<$layout, P>::try_from(self).map_err(|_| ArithmeticError::Overflow)?;
+                lhs.lossless_div(rhs)
             }
         }
 
