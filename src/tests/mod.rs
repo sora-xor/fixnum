@@ -592,7 +592,7 @@ fn lossless_div_by_zero() -> Result<()> {
         (FixedPoint::MAX),
         (FixedPoint::MIN),
     ];
-    for (x) in cases {
+    for x in cases {
         assert_eq!(
             x.lossless_div(FixedPoint::ZERO),
             Err(ArithmeticError::DivisionByZero)

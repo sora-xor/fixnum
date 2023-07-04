@@ -488,7 +488,7 @@ macro_rules! impl_for_ints {
                     return Err(ArithmeticError::DivisionByZero);
                 }
 
-                let mut result = self / rhs;
+                let result = self / rhs;
                 let loss = self - result * rhs;
 
                 if loss != 0 {
