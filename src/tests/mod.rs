@@ -286,6 +286,61 @@ fn rmul_overflow() -> Result<()> {
 }
 
 #[test]
+fn lossless_mul_round() -> Result<()> {
+    // apparently the `test_fixed_point` macros does not work
+    // for non-fp expected value (some weird errors were reported)
+    type Layout = i64;
+
+    type FixedPoint = crate::FixedPoint<Layout, typenum::U9>;
+    #[allow(unused)]
+    macro_rules! fp {
+        ($val:literal) => {{
+            let value: FixedPoint = stringify!($val).parse()?;
+            value
+        }};
+    }
+    let cases = [
+        (fp!(0.1), fp!(0.000000001), None),
+        (fp!(-0.1), fp!(0.000000001), None),
+        (fp!(0.000000001), fp!(0.000000001), None),
+        (fp!(-0.000000001), fp!(0.000000001), None),
+        (fp!(5.1), fp!(0.000000001), None),
+        (fp!(-5.1), fp!(0.000000001), None),
+        (fp!(5), fp!(2), Some(fp!(10))),
+        (fp!(0.5), fp!(0.000000002), Some(fp!(0.000000001))),
+        (fp!(-0.5), fp!(0.000000002), Some(fp!(-0.000000001))),
+    ];
+    for (a, b, c) in cases {
+        assert_eq!(a.lossless_mul(b)?, c);
+        assert_eq!(b.lossless_mul(a)?, c);
+        assert_eq!(b.cneg()?.lossless_mul(a.cneg()?)?, c);
+    }
+    Ok(())
+}
+
+#[test]
+fn lossless_mul_overflow() -> Result<()> {
+    test_fixed_point! {
+        case (a | FixedPoint, b | FixedPoint) => {
+            assert_eq!(a.lossless_mul(b), Err(ArithmeticError::Overflow));
+        },
+        all {
+            (FixedPoint::MAX, fp!(1.000000001));
+        },
+        fp64 {
+            (fp!(96038.388349945), fp!(96038.388349945));
+            (fp!(-97000), fp!(96100))
+        },
+        fp128 {
+            (FixedPoint::MAX, fp!(1.000000000000000001));
+            (fp!(13043817825.332783), fp!(13043817825.332783));
+            (fp!(-13043817826), fp!(13043817826))
+        },
+    };
+    Ok(())
+}
+
+#[test]
 fn rdiv_exact() -> Result<()> {
     test_fixed_point! {
         case (numerator | FixedPoint, denominator | FixedPoint, expected | FixedPoint) => {
