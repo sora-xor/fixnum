@@ -292,7 +292,6 @@ fn lossless_mul_round() -> Result<()> {
     type Layout = i64;
 
     type FixedPoint = crate::FixedPoint<Layout, typenum::U9>;
-    #[allow(unused)]
     macro_rules! fp {
         ($val:literal) => {{
             let value: FixedPoint = stringify!($val).parse()?;
@@ -366,6 +365,35 @@ fn rdiv_exact() -> Result<()> {
 }
 
 #[test]
+fn lossless_div_exact() -> Result<()> {
+    // apparently the `test_fixed_point` macros does not work
+    // for non-fp expected value (some weird errors were reported)
+    type Layout = i64;
+
+    type FixedPoint = crate::FixedPoint<Layout, typenum::U9>;
+    macro_rules! fp {
+        ($val:literal) => {{
+            let value: FixedPoint = stringify!($val).parse()?;
+            value
+        }};
+    }
+    let cases = [
+        (FixedPoint::MAX, FixedPoint::MAX, FixedPoint::ONE),
+        (fp!(5), fp!(2), fp!(2.5)),
+        (fp!(-5), fp!(2), fp!(-2.5)),
+        (fp!(5), fp!(-2), fp!(-2.5)),
+        (fp!(-5), fp!(-2), fp!(2.5)),
+        (fp!(5), fp!(0.2), fp!(25)),
+        (fp!(0.00000001), fp!(10), fp!(0.000000001)),
+        (fp!(0.000000001), fp!(0.1), fp!(0.00000001)),
+    ];
+    for (a, b, c) in cases {
+        assert_eq!(a.lossless_div(b)?, Some(c));
+    }
+    Ok(())
+}
+
+#[test]
 fn rdiv_by_layout() -> Result<()> {
     test_fixed_point! {
         case (
@@ -404,6 +432,36 @@ fn rdiv_by_layout() -> Result<()> {
 }
 
 #[test]
+fn lossless_div_by_layout() -> Result<()> {
+    // apparently the `test_fixed_point` macros does not work
+    // for non-fp expected value (some weird errors were reported)
+    type Layout = i64;
+
+    type FixedPoint = crate::FixedPoint<Layout, typenum::U9>;
+    macro_rules! fp {
+        ($val:literal) => {{
+            let value: FixedPoint = stringify!($val).parse()?;
+            value
+        }};
+    }
+    let cases = [
+        (fp!(2.4), 2, Some(fp!(1.2))),
+        (fp!(0), 5, Some(FixedPoint::ZERO)),
+        (fp!(7), 3, None),
+        (fp!(-7), 3, None),
+        (fp!(-7), -3, None),
+        (fp!(7), -3, None),
+        (fp!(0.000000003), 2, None),
+        (fp!(0.000000003), 7, None),
+        (fp!(0.000000001), 7, None),
+    ];
+    for (a, b, c) in cases {
+        assert_eq!(a.lossless_div(b)?, c);
+    }
+    Ok(())
+}
+
+#[test]
 fn rdiv_round() -> Result<()> {
     test_fixed_point! {
         case (
@@ -428,6 +486,31 @@ fn rdiv_round() -> Result<()> {
             (fp!(100), fp!(-3), fp!(-33.333333333333333333), fp!(-33.333333333333333334));
         },
     };
+    Ok(())
+}
+
+#[test]
+fn lossless_div_round() -> Result<()> {
+    // apparently the `test_fixed_point` macros does not work
+    // for non-fp expected value (some weird errors were reported)
+    type Layout = i64;
+
+    type FixedPoint = crate::FixedPoint<Layout, typenum::U9>;
+    macro_rules! fp {
+        ($val:literal) => {{
+            let value: FixedPoint = stringify!($val).parse()?;
+            value
+        }};
+    }
+    let cases = [
+        (fp!(100), fp!(3), None),
+        (fp!(-100), fp!(-3), None),
+        (fp!(-100), fp!(3), None),
+        (fp!(100), fp!(-3), None),
+    ];
+    for (a, b, c) in cases {
+        assert_eq!(a.lossless_div(b)?, c);
+    }
     Ok(())
 }
 
@@ -458,6 +541,19 @@ fn rdiv_layout() -> Result<()> {
 }
 
 #[test]
+fn lossless_div_layout() -> Result<()> {
+    // apparently the `test_fixed_point` macros does not work
+    // for non-fp expected value (some weird errors were reported)
+    type Layout = i64;
+
+    let cases: [(Layout, Layout, Option<Layout>); 2] = [(5, 2, None), (0, 5, Some(0))];
+    for (a, b, c) in cases {
+        assert_eq!(a.lossless_div(b)?, c);
+    }
+    Ok(())
+}
+
+#[test]
 fn rdiv_division_by_zero() -> Result<()> {
     test_fixed_point! {
         case (x | FixedPoint) => {
@@ -477,6 +573,35 @@ fn rdiv_division_by_zero() -> Result<()> {
 }
 
 #[test]
+fn lossless_div_by_zero() -> Result<()> {
+    // apparently the `test_fixed_point` macros does not work
+    // for non-fp expected value (some weird errors were reported)
+    type Layout = i64;
+
+    type FixedPoint = crate::FixedPoint<Layout, typenum::U9>;
+    macro_rules! fp {
+        ($val:literal) => {{
+            let value: FixedPoint = stringify!($val).parse()?;
+            value
+        }};
+    }
+    let cases = [
+        (fp!(0)),
+        (fp!(1)),
+        (fp!(-1)),
+        (FixedPoint::MAX),
+        (FixedPoint::MIN),
+    ];
+    for (x) in cases {
+        assert_eq!(
+            x.lossless_div(FixedPoint::ZERO),
+            Err(ArithmeticError::DivisionByZero)
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn rdiv_overflow() -> Result<()> {
     test_fixed_point! {
         case (denominator | FixedPoint) => {
@@ -492,6 +617,26 @@ fn rdiv_overflow() -> Result<()> {
             (fp!(0.999999999999999999));
         },
     };
+    Ok(())
+}
+
+#[test]
+fn lossless_div_overflow() -> Result<()> {
+    // apparently the `test_fixed_point` macros does not work
+    // for non-fp expected value (some weird errors were reported)
+    type Layout = i64;
+
+    type FixedPoint = crate::FixedPoint<Layout, typenum::U9>;
+    macro_rules! fp {
+        ($val:literal) => {{
+            let value: FixedPoint = stringify!($val).parse()?;
+            value
+        }};
+    }
+    assert_eq!(
+        FixedPoint::MAX.lossless_div(fp!(0.999999999)),
+        Err(ArithmeticError::Overflow)
+    );
     Ok(())
 }
 
