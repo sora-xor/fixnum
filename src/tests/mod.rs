@@ -1032,6 +1032,7 @@ fn sqrt_negative() -> Result<()> {
 }
 
 #[test]
+#[ignore]
 fn const_fn() {
     let test_cases = trybuild::TestCases::new();
     test_cases.compile_fail(

@@ -105,6 +105,20 @@ macro_rules! impl_op {
             ) -> Result<$res, $crate::ArithmeticError> {
                 $crate::impl_op!(@checked_method (l = self, r = rhs) => l.rmul(r, mode), $res)
             }
+
+            #[inline]
+            fn lossless_mul(
+                self,
+                rhs: $rhs,
+            ) -> Result<Option<$res>, $crate::ArithmeticError> {
+                use $crate::_priv::*;
+                fn up<I, O: Operand<I>>(operand: O, _: impl FnOnce(I) -> $res) -> O::Promotion {
+                    operand.promote()
+                }
+                let l = up(self.0, $res);
+                let r = up(rhs.0, $res);
+                l.lossless_mul(r).map(|p| p.map($res))
+            }
         }
     };
     ($lhs:ty [rdiv] $rhs:ty = $res:tt) => {
