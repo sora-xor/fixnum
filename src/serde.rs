@@ -5,10 +5,9 @@
 //! By default `FixedPoint` is serialized using `as_string` for human readable formats
 //! and `as_repr` for other ones.
 
-use std::{
+use core::{
     convert::TryFrom,
     fmt::{self, Display},
-    io::{Cursor, Write as _},
     marker::PhantomData,
     str::{self, FromStr},
 };
@@ -91,17 +90,9 @@ pub mod as_string {
         // Serialize as a string in case of human readable formats.
         // The maximum length can be calculated as `len(str(-2**bits)) + 1`,
         // where `1` is reserved for `.` after integral part.
-        const MAX_LEN: usize = if cfg!(feature = "i128") { 41 } else { 21 };
+        let res = format!("{}", fp);
 
-        let mut buf = [0; MAX_LEN];
-        let mut cursor = Cursor::new(&mut buf[..]);
-        let _ = write!(cursor, "{}", fp);
-        let p = cursor.position() as usize;
-
-        // The Display instance for numbers produces valid utf-8.
-        let s = unsafe { str::from_utf8_unchecked(&buf[..p]) };
-
-        serializer.serialize_str(s)
+        serializer.serialize_str(res.as_str())
     }
 
     pub fn deserialize<'de, I, P, D>(deserializer: D) -> Result<FixedPoint<I, P>, D::Error>

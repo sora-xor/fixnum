@@ -119,9 +119,12 @@
 //! [saturating_rmul]: ./ops/trait.RoundingMul.html#tymethod.saturating_rmul
 //! [saturating_sub]: ./ops/trait.CheckedSub.html#tymethod.saturating_sub
 
-#![warn(rust_2018_idioms, unreachable_pub)]
+#![warn(unreachable_pub)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+
+#[macro_use]
+extern crate alloc;
 
 use core::cmp::Ord;
 use core::convert::{TryFrom, TryInto};
@@ -152,7 +155,7 @@ compile_error!("Some of the next features must be enabled: \"i128\", \"i64\", \"
 pub use errors::*;
 
 pub mod ops;
-#[cfg(all(feature = "serde", feature = "std"))]
+#[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(all(feature = "std", feature = "serde"))))]
 pub mod serde;
 

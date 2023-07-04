@@ -30,14 +30,16 @@ path = "examples/usage.rs"
 required-features = ["i64"]
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"], optional = true }
+serde = { version = "1.0", features = [
+    "derive",
+], default-features = false, optional = true }
 typenum = "1.12.0"
 derive_more = { version = "0.99.9", default-features = false }
-parity-scale-codec = { version = "2", default-features = false, optional = true, features = [
+parity-scale-codec = { version = "3", default-features = false, optional = true, features = [
     "derive",
 ] }
 static_assertions = "1.1.0"
-scale-info = { version = "1.0", default-features = false, features = [
+scale-info = { version = "2", default-features = false, features = [
     "derive",
 ], optional = true }
 
@@ -52,7 +54,7 @@ bincode = { version = "1.3", features = ["i128"] }
 
 [features]
 default = ["std", "serde"]
-std = ["derive_more/error"]
+std = ["derive_more/error", "serde/std"]
 i16 = []
 i32 = []
 i64 = []
