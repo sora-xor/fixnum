@@ -292,6 +292,29 @@ pub trait RoundingMul<Rhs = Self> {
             }
         })
     }
+
+    /// Rounding-free multiplication. Returns `Ok(None)` instead of rounding the result.
+    /// `Err` on overflow
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::RoundingMul};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let a: Amount = "0.000000002".parse()?;
+    /// let b: Amount = "0.5".parse()?;
+    /// let b_1: Amount = "0.1".parse()?;
+    /// let c: Amount = "0.000000001".parse()?;
+    /// // 2e-9 * 0.5 = 1e-9
+    /// assert_eq!(a.lossless_mul(b)?, Some(c));
+    /// assert_eq!(b.lossless_mul(a)?, Some(c));
+    /// // 2e-9 * 0.1 = 2e-10 (needs to be rounded, so `None`)
+    /// assert_eq!(a.lossless_mul(b_1)?, None);
+    /// assert_eq!(b_1.lossless_mul(a)?, None);
+    /// # Ok(()) }
+    /// ```
+    fn lossless_mul(self, rhs: Rhs) -> Result<Option<Self::Output>, Self::Error>;
 }
 
 pub trait RoundingDiv<Rhs = Self> {

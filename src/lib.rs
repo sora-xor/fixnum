@@ -272,6 +272,26 @@ macro_rules! impl_fixed_point {
 
                 Ok(Self::from_bits(result))
             }
+
+            #[inline]
+            fn lossless_mul(self, rhs: Self) -> Result<Option<Self>> {
+                // TODO(loyd): avoid 128bit arithmetic when possible,
+                //      because LLVM doesn't replace 128bit division by const with multiplication.
+
+                let value = $promotion::from(self.inner) * $promotion::from(rhs.inner);
+                // TODO: replace with multiplication by constant
+                let result = value / Self::COEF_PROMOTED;
+                let loss = value - result * Self::COEF_PROMOTED;
+
+                let result =
+                    $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
+
+                if loss != $convert(0) {
+                    return Ok(None);
+                }
+
+                Ok(Some(Self::from_bits(result)))
+            }
         }
 
         $(#[$attr])?
